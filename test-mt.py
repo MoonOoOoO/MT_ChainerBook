@@ -25,11 +25,11 @@ for i in range(len(elines)):
     for w in lt:
         if w not in evocab:
             val = len(evocab)
-            evocab[w] = val
             id2wd[val] = w
+            evocab[w] = val
 val = len(evocab)
-evocab['<eos>'] = val
 id2wd[val] = '<eos>'
+evocab['<eos>'] = val
 ev = len(evocab)
 
 
@@ -69,7 +69,7 @@ class MyMT(chainer.Chain):
 
 
 def mt(model, jline):
-    model.H.reset_state()
+    # model.H.reset_state()
     for i in range(len(jline)):
         wid = jvocab[jline[i]]
         x_k = model.embedx(Variable(np.array([wid], dtype=np.int32)))
@@ -78,34 +78,32 @@ def mt(model, jline):
     h = model.H(x_k)
     wid = np.argmax(F.softmax(model.W(h)).data[0])
     if wid in id2wd:
-        print(id2wd[wid]),
+        print(id2wd[wid], end=" ")
     else:
-        print(wid),
+        print(wid, end=" ")
     loop = 0
     while (wid != evocab['<eos>']) and (loop <= 30):
         x_k = model.embedy(Variable(np.array([wid], dtype=np.int32)))
         h = model.H(x_k)
         wid = np.argmax(F.softmax(model.W(h)).data[0])
         if wid in id2wd:
-            print(id2wd[wid]),
+            print(id2wd[wid], end=" ")
         else:
-            print(wid),
+            print(wid, end=" ")
         loop += 1
     print()
 
 
-jlines = "我 喜欢 英语 。\n他 打 网球\n狗\n".split('\n')
+jlines = open('jp-test.txt').read().split('\n')
 
 demb = 100
 
 for epoch in range(100):
     model = MyMT(jv, ev, demb)
-    # cuda.get_device_from_id(0).use()
-    # model.to_gpu()
     filename = "model/mt-" + str(epoch) + ".model"
     serializers.load_npz(filename, model)
     for i in range(len(jlines) - 1):
         jln = jlines[i].split()
         jlnr = jln[::-1]
-        print(epoch, ": ", )
+        print(epoch, ":")
         mt(model, jlnr)
