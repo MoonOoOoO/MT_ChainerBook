@@ -1,34 +1,57 @@
-import numpy as xp
+import glob
+
+import numpy as np
 import chainer
 from chainer import cuda, Function, gradient_check, Variable, optimizers, serializers, utils
 from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
 
-xp = cuda.cupy
+xp = cuda.cupy  # use GPU
 
 jvocab = {}
-jlines = open('jp.txt').read().split('\n')
-# allocate an ID to each Chinese word
+
+jlines = glob.glob('ruby_input/*.rb')
 for i in range(len(jlines)):
-    lt = jlines[i].split()
-    for w in lt:
-        if w not in jvocab:
-            jvocab[w] = len(jvocab)
-jvocab['<eos>'] = len(jvocab)
+    f = open(jlines[i], 'r').read().split('\n')
+    for line in f:
+        if line not in jvocab:
+            jvocab[line] = len(jvocab)
+jvocab["<eos>"] = len(jvocab)
 jv = len(jvocab)
 
+# jlines = open('jp.txt').read().split('\n')
+# for i in range(len(jlines)):
+#     lt = jlines[i].split()
+#     for w in lt:
+#         if w not in jvocab:
+#             jvocab[w] = len(jvocab)
+# jvocab['<eos>'] = len(jvocab)
+# jv = len(jvocab)
+print(jvocab)
+print(jv)
+
 evocab = {}
-# id2wd = {}
-elines = open('eng.txt').read().split('\n')
-# allocate an ID to each English word, match the IDs to the English words and saved in array "id2wd"
+
+elines = glob.glob('python_output/*.py')
 for i in range(len(elines)):
-    lt = elines[i].split()
-    for w in lt:
-        if w not in evocab:
-            evocab[w] = len(evocab)
-evocab['<eos>'] = len(evocab)
+    f = open(elines[i], 'r').read().split('\n')
+    for line in f:
+        if line not in evocab:
+            evocab[line] = len(evocab)
+evocab["<eos>"] = len(evocab)
 ev = len(evocab)
+
+# elines = open('eng.txt').read().split('\n')
+# for i in range(len(elines)):
+#     lt = elines[i].split()
+#     for w in lt:
+#         if w not in evocab:
+#             evocab[w] = len(evocab)
+# evocab['<eos>'] = len(evocab)
+# ev = len(evocab)
+print(evocab)
+print(ev)
 
 
 class MyMT(chainer.Chain):
@@ -73,11 +96,28 @@ cuda.get_device_from_id(0).use()
 model.to_gpu()
 optimizer = optimizers.Adam()
 optimizer.setup(model)
+# for epoch in range(100):
+#     for i in range(len(jlines) - 1):
+#         jln = jlines[i].split()  # file
+#         jlnr = jln[::-1]  # line
+#         eln = elines[i].split()
+#         model.H.reset_state()
+#         model.cleargrads()
+#         loss = model(jlnr, eln)
+#         loss.backward()
+#         loss.unchain_backward()  # truncate
+#         optimizer.update()
+#         print(i, "finished")
+#     outfile = "model/mt-" + str(epoch) + ".model"
+#     serializers.save_npz(outfile, model)
+#     print("mt-" + str(epoch) + ".model")
+
 for epoch in range(100):
     for i in range(len(jlines) - 1):
-        jln = jlines[i].split()
-        jlnr = jln[::-1]
-        eln = elines[i].split()
+        jln = open(jlines[i], 'r')  # file
+        jlnr = jln.read().split('\n')  # line
+        jlnr = jlnr[::-1]
+        eln = open(elines[i], 'r').read().split('\n')
         model.H.reset_state()
         model.cleargrads()
         loss = model(jlnr, eln)
