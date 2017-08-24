@@ -1,3 +1,5 @@
+import glob
+
 import numpy as np
 import chainer
 from chainer import cuda, Function, gradient_check, Variable, optimizers, serializers, utils
@@ -6,30 +8,48 @@ import chainer.functions as F
 import chainer.links as L
 
 jvocab = {}
-jlines = open('jp.txt').read().split('\n')
-# allocate an ID to each Chinese word
+# jlines = open('jp.txt').read().split('\n')
+# for i in range(len(jlines)):
+#     lt = jlines[i].split()
+#     for w in lt:
+#         if w not in jvocab:
+#             jvocab[w] = len(jvocab)
+# jvocab['<eos>'] = len(jvocab)
+# jv = len(jvocab)
+
+jlines = glob.glob('ruby_input/*.rb')
 for i in range(len(jlines)):
-    lt = jlines[i].split()
-    for w in lt:
-        if w not in jvocab:
-            jvocab[w] = len(jvocab)
-jvocab['<eos>'] = len(jvocab)
+    f = open(jlines[i], 'r').read().split('\n')
+    for line in f:
+        if line not in jvocab:
+            jvocab[line] = len(jvocab)
+jvocab["<eos>"] = len(jvocab)
 jv = len(jvocab)
 
 evocab = {}
 id2wd = {}
-elines = open('eng.txt').read().split('\n')
-# allocate an ID to each English word, match the IDs to the English words and saved in array "id2wd"
+# elines = open('eng.txt').read().split('\n')
+# for i in range(len(elines)):
+#     lt = elines[i].split()
+#     for w in lt:
+#         if w not in evocab:
+#             val = len(evocab)
+#             id2wd[val] = w
+#             evocab[w] = val
+# val = len(evocab)
+# id2wd[val] = '<eos>'
+# evocab['<eos>'] = val
+# ev = len(evocab)
+
+elines = glob.glob('python_output/*.py')
 for i in range(len(elines)):
-    lt = elines[i].split()
-    for w in lt:
-        if w not in evocab:
+    f = open(elines[i], 'r').read().split('\n')
+    for line in f:
+        if line not in evocab:
             val = len(evocab)
-            id2wd[val] = w
-            evocab[w] = val
-val = len(evocab)
-id2wd[val] = '<eos>'
-evocab['<eos>'] = val
+            id2wd[val] = line
+            evocab[line] = val
+evocab["<eos>"] = len(evocab)
 ev = len(evocab)
 
 
@@ -78,32 +98,47 @@ def mt(model, jline):
     h = model.H(x_k)
     wid = np.argmax(F.softmax(model.W(h)).data[0])
     if wid in id2wd:
-        print(id2wd[wid], end=" ")
+        print(id2wd[wid], end="\n")
     else:
-        print(wid, end=" ")
+        print(wid, end="\n")
     loop = 0
     while (wid != evocab['<eos>']) and (loop <= 30):
         x_k = model.embedy(Variable(np.array([wid], dtype=np.int32)))
         h = model.H(x_k)
         wid = np.argmax(F.softmax(model.W(h)).data[0])
         if wid in id2wd:
-            print(id2wd[wid], end=" ")
+            print(id2wd[wid], end="\n")
         else:
-            print(wid, end=" ")
+            print(wid, end="\n")
         loop += 1
     print()
 
 
-jlines = open('jp-test.txt').read().split('\n')
-
+# jlines = open('jp-test.txt').read().split('\n')
+jlines = glob.glob('ruby_input/*.rb')
 demb = 100
 
 for epoch in range(100):
     model = MyMT(jv, ev, demb)
     filename = "model/mt-" + str(epoch) + ".model"
     serializers.load_npz(filename, model)
-    for i in range(len(jlines) - 1):
-        jln = jlines[i].split()
-        jlnr = jln[::-1]
-        print(epoch, ":")
-        mt(model, jlnr)
+    # for i in range(len(jlines) - 1):
+    #     jln = jlines[i].split()
+    #     jlnr = jln[::-1]
+    #     print(epoch, ":")
+    #     mt(model, jlnr)
+
+
+    # for i in range(len(jlines) - 1):
+    #     jln = open(jlines[i], 'r')  # file
+    #     jlnr = jln.read().split('\n')  # line
+    #     jlnr = jlnr[::-1]
+    #     print(epoch, ":")
+    #     mt(model, jlnr)
+
+
+    jln = open('ruby_input/helloworld.rb')
+    jlnr = jln.read().split('\n')  # line
+    jlnr = jlnr[::-1]
+    print(epoch, ":")
+    mt(model, jlnr)
